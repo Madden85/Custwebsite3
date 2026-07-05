@@ -197,6 +197,7 @@ window.NUMO_BUTTON_TEXT = {
   searchPlaceholder: "Cari produk...",
   emptySearchText: "Tiada produk dijumpai.",
   syncing: "Syncing...",
+  loadingData: "Loading data...",
   liveStockPromo: "Live stock & promo",
   stockVersionLabel: "",
   offlinePriceMode: "Tidak dapat sync. Guna harga default.",

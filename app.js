@@ -9,6 +9,7 @@ let TXT = window.NUMO_BUTTON_TEXT || {};
 let started = false;
 let selectedCategory = "Semua";
 let control = { stock: [], promos: [], hotSelling: [], meta: {}, loaded: false };
+let controlLoading = true;
 let hotItems = [];
 let hotIndex = 0;
 let hotTimer = null;
@@ -65,6 +66,7 @@ function initPage() {
   renderTrust();
   renderFaq();
   renderProducts();
+  setPageLoadingState(true);
   loadControl();
 }
 
@@ -177,6 +179,8 @@ function bindBaseEvents() {
 }
 
 async function loadControl() {
+  controlLoading = true;
+  setPageLoadingState(true);
   setSync(TXT.syncing || "Syncing...", "warn");
 
   try {
@@ -212,10 +216,38 @@ async function loadControl() {
   } catch (e) {
     control.loaded = false;
     setSync(TXT.offlinePriceMode || "Tidak dapat sync. Guna harga default.", "warn");
+  } finally {
+    controlLoading = false;
+    renderHotSelling();
+    renderProducts();
+    renderBundles();
+    setPageLoadingState(false);
   }
+}
 
-  renderHotSelling();
-  renderProducts();
+function isDataLoading() {
+  return controlLoading === true;
+}
+
+function loadingDataText() {
+  return TXT.loadingData || "Loading data...";
+}
+
+function setPageLoadingState(isLoading) {
+  const text = loadingDataText();
+  document.body?.classList.toggle("data-loading", !!isLoading);
+
+  document.querySelectorAll("[data-buy-product], [data-bundle-title]").forEach(btn => {
+    if (isLoading) {
+      if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent || "";
+      btn.disabled = true;
+      btn.textContent = text;
+      btn.onclick = null;
+    } else if (btn.dataset.originalText) {
+      btn.textContent = btn.dataset.originalText;
+      delete btn.dataset.originalText;
+    }
+  });
 }
 
 function setSync(text, mode) {
@@ -271,8 +303,9 @@ function renderProducts() {
 }
 
 function renderProductCard(p) {
-  const available = isAvailable(p.name, "ALL");
-  const stockText = available ? (TXT.readyLabel || "Ready") : getStockText(p.name, "ALL");
+  const waiting = isDataLoading();
+  const available = !waiting && isAvailable(p.name, "ALL");
+  const stockText = waiting ? loadingDataText() : (available ? (TXT.readyLabel || "Ready") : getStockText(p.name, "ALL"));
   const pillClass = available ? "" : "off";
 
   return `
@@ -302,7 +335,8 @@ function renderPlans(product, plans, section) {
 
   return plans.map(plan => {
     const stockSection = section || "ALL";
-    const ok = isAvailable(product.name, stockSection);
+    const waiting = isDataLoading();
+    const ok = !waiting && isAvailable(product.name, stockSection);
     const promo = findPromo(product.name, stockSection, plan.duration);
     const on = isPromoActive(promo) && promo.promoPrice;
     const normal = promo?.normalPrice || plan.price;
@@ -310,7 +344,7 @@ function renderPlans(product, plans, section) {
     const badge = on ? `<span class="badge ${badgeClass(promo.badgeColor)}">${safe(promo.badgeText || promo.badgePreset || "PROMO")}</span>` : "";
     const note = on && promo.note ? `<div class="note">${safe(promo.note)}</div>` : "";
     const oldPrice = normal || plan.price;
-    const disabledText = getStockText(product.name, stockSection);
+    const disabledText = waiting ? loadingDataText() : getStockText(product.name, stockSection);
 
     return `
       <div class="plan">
@@ -339,6 +373,12 @@ function renderPlans(product, plans, section) {
 
 function renderHotSelling() {
   if (!$("hot") || !$("hotGrid")) return;
+
+  if (isDataLoading()) {
+    stopHotAutoplay();
+    $("hot").classList.add("hidden");
+    return;
+  }
 
   hotItems = (control.hotSelling || [])
     .filter(x => isAvailable(x.product, x.section || "ALL"))
@@ -406,17 +446,25 @@ function renderHotSelling() {
 function renderBundles() {
   if (!$("bundleGrid")) return;
   const bundles = CONFIG.BUNDLES || [];
+  const waiting = isDataLoading();
+  const btnText = waiting ? loadingDataText() : (TXT.pmAdminButton || "PM Admin");
+  const disabled = waiting ? ' disabled aria-disabled="true"' : "";
+
   $("bundleGrid").innerHTML = bundles.map(b => `
     <article class="bundle">
       <span class="bundle-tag">${safe(b.tag || TXT.bundleDefaultTag || "BUNDLE")}</span>
       <h3>${safe(b.title || TXT.bundleDefaultTitle || "Bundle")}</h3>
       <p>${safe(b.text || "")}</p>
       <span class="price">${safe(b.price || TXT.askAdminPrice || "Tanya Admin")}</span>
-      <button class="btn primary" type="button" data-bundle-title="${attr(b.title || TXT.bundleDefaultTitle || "Bundle")}">${safe(TXT.pmAdminButton || "PM Admin")}</button>
+      <button class="btn primary" type="button" data-bundle-title="${attr(b.title || TXT.bundleDefaultTitle || "Bundle")}"${disabled}>${safe(btnText)}</button>
     </article>
   `).join("");
 
   $("bundleGrid").querySelectorAll("[data-bundle-title]").forEach(btn => {
+    if (waiting) {
+      btn.onclick = null;
+      return;
+    }
     btn.onclick = () => prepareBundleOrder(btn.dataset.bundleTitle, btn);
   });
 }
@@ -449,6 +497,13 @@ function bindBuyButtons(root) {
   root.querySelectorAll("[data-buy-product]").forEach(btn => {
     const product = btn.dataset.buyProduct;
     const section = btn.dataset.buySection || "ALL";
+
+    if (isDataLoading()) {
+      btn.disabled = true;
+      btn.textContent = loadingDataText();
+      btn.onclick = null;
+      return;
+    }
 
     // V5 ADMIN PANEL STOCK LOGIC:
     // Even if old HTML/button is still visible, button will be disabled if stock is not ON.
