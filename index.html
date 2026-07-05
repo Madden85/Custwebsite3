@@ -166,6 +166,9 @@
     .from strong{display:block;color:#080808;font-size:22px;margin-top:2px}
     .view{width:100%;margin-top:auto;background:#080808;border:0;color:#fff;border-radius:16px;padding:13px;font-weight:950;cursor:pointer}
     .view:hover{background:var(--red)}
+    .view:disabled{background:#d7d7d7;color:#7a7a7a;cursor:not-allowed}
+    .view:disabled:hover{background:#d7d7d7}
+    .btn.loading-disabled{opacity:.55;cursor:not-allowed;pointer-events:none;transform:none;box-shadow:none}
     .plans{display:none;padding:0 16px 16px;gap:10px}.product.open .plans{display:grid}
     .subhead{font-weight:950;color:#080808;font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:2px 0 0;border-left:4px solid var(--red);padding-left:8px}
     .plan{border:1px solid rgba(0,0,0,.10);background:#f4f4f5;border-radius:18px;padding:12px;display:grid;gap:10px}

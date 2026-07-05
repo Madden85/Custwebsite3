@@ -237,15 +237,45 @@ function setPageLoadingState(isLoading) {
   const text = loadingDataText();
   document.body?.classList.toggle("data-loading", !!isLoading);
 
-  document.querySelectorAll("[data-buy-product], [data-bundle-title]").forEach(btn => {
+  document.querySelectorAll("[data-buy-product], [data-bundle-title], [data-toggle]").forEach(btn => {
     if (isLoading) {
       if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent || "";
       btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
       btn.textContent = text;
       btn.onclick = null;
     } else if (btn.dataset.originalText) {
+      btn.disabled = false;
+      btn.removeAttribute("aria-disabled");
       btn.textContent = btn.dataset.originalText;
       delete btn.dataset.originalText;
+    }
+  });
+
+  ["heroPrimary", "stickyButton"].forEach(id => {
+    const link = $(id);
+    if (!link) return;
+
+    if (isLoading) {
+      if (!link.dataset.originalText) link.dataset.originalText = link.textContent || "";
+      if (!link.dataset.originalHref && link.getAttribute("href")) link.dataset.originalHref = link.getAttribute("href");
+      if (!link.dataset.originalTabindex && link.hasAttribute("tabindex")) link.dataset.originalTabindex = link.getAttribute("tabindex") || "";
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      link.setAttribute("tabindex", "-1");
+      link.classList.add("loading-disabled");
+      link.textContent = text;
+    } else if (link.dataset.originalText) {
+      link.textContent = link.dataset.originalText;
+      if (link.dataset.originalHref) link.setAttribute("href", link.dataset.originalHref);
+      else link.setAttribute("href", "#produk");
+      link.removeAttribute("aria-disabled");
+      link.classList.remove("loading-disabled");
+      if (link.dataset.originalTabindex !== undefined) link.setAttribute("tabindex", link.dataset.originalTabindex);
+      else link.removeAttribute("tabindex");
+      delete link.dataset.originalText;
+      delete link.dataset.originalHref;
+      delete link.dataset.originalTabindex;
     }
   });
 }
@@ -292,7 +322,22 @@ function renderProducts() {
   $("productsGrid").innerHTML = items.map(renderProductCard).join("");
 
   $("productsGrid").querySelectorAll("[data-toggle]").forEach(btn => {
+    if (isDataLoading() || btn.disabled) {
+      btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
+      btn.textContent = loadingDataText();
+      btn.onclick = null;
+      return;
+    }
+
     btn.onclick = () => {
+      if (isDataLoading()) {
+        btn.disabled = true;
+        btn.setAttribute("aria-disabled", "true");
+        btn.textContent = loadingDataText();
+        return;
+      }
+
       const card = btn.closest(".product");
       const open = card.classList.toggle("open");
       btn.textContent = open ? (TXT.closePackages || "Tutup Pakej") : (TXT.viewPackages || "Lihat Pakej");
@@ -308,6 +353,9 @@ function renderProductCard(p) {
   const stockText = waiting ? loadingDataText() : (available ? (TXT.readyLabel || "Ready") : getStockText(p.name, "ALL"));
   const pillClass = available ? "" : "off";
 
+  const viewButtonText = waiting ? loadingDataText() : (TXT.viewPackages || "Lihat Pakej");
+  const viewButtonDisabled = waiting ? ' disabled aria-disabled="true"' : "";
+
   return `
     <article class="product">
       <div class="photo-box">
@@ -318,7 +366,7 @@ function renderProductCard(p) {
         <div class="p-name">${safe(p.display)}</div>
         <div class="p-desc">${safe(p.desc)}</div>
         <div class="from"><span>${safe(TXT.fromPriceLabel || "Harga dari")}</span><strong>${safe(lowestPrice(p))}</strong></div>
-        <button class="view" type="button" data-toggle>${safe(TXT.viewPackages || "Lihat Pakej")}</button>
+        <button class="view" type="button" data-toggle${viewButtonDisabled}>${safe(viewButtonText)}</button>
       </div>
       <div class="plans">
         ${p.sections ? p.sections.map(s => `
