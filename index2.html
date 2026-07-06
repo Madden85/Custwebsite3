@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Editable Text Config</title>
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#fff;color:#111;line-height:1.5}
-    code{background:#f4f4f4;border-radius:6px;padding:2px 6px}
-    .box{border:1px solid #ddd;border-radius:14px;padding:16px;max-width:720px}
+
+    :root{--pink:#ec4899;--deep:#831843;--soft:#fff0f7;--line:rgba(236,72,153,.18)}
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:linear-gradient(180deg,#fff7fb,#ffeaf4);color:var(--deep);line-height:1.5}
+    code{background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:#9d174d}
+    .box{border:1px solid var(--line);border-radius:22px;padding:18px;max-width:720px;background:rgba(255,255,255,.86);box-shadow:0 18px 48px rgba(190,24,93,.12)}
+    h1{margin-top:0;color:var(--deep)}
+    p{color:#86526a}
   </style>
 </head>
 <body>
